@@ -718,7 +718,7 @@
                 
                 if (type === 'orders') {
                     title.innerText = "Your Orders";
-                    // NO ORDERBY IN QUERY TO AVOID INDEX ERROR
+                    // NO ORDERBY IN QUERY TO AVOID INDEX ERROR (MAN I AM FED UP WITH THIS!!!!!!!!!)
                     q = query(collection(db, "orders"), where("buyerUid", "==", currentUser.uid));
                     snap = await getDocs(q);
                     snap.forEach(d => docs.push({id: d.id, ...d.data()}));
@@ -815,5 +815,6 @@
         document.querySelectorAll('.chip').forEach(c=>c.onclick=e=>{document.querySelectorAll('.chip').forEach(x=>x.classList.remove('active'));e.target.classList.add('active');renderGrid();});
         function showToast(m){const t=document.getElementById('toast');t.innerText=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3000);}
     </script>
+    // hey! If you are reading this... this was a long time in the making!
 </body>
 </html>
