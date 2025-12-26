@@ -814,7 +814,7 @@
         document.getElementById('searchInput').addEventListener('input',renderGrid);
         document.querySelectorAll('.chip').forEach(c=>c.onclick=e=>{document.querySelectorAll('.chip').forEach(x=>x.classList.remove('active'));e.target.classList.add('active');renderGrid();});
         function showToast(m){const t=document.getElementById('toast');t.innerText=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3000);}
+        // hey! If you are reading this... this was a long time in the making!
     </script>
-    // hey! If you are reading this... this was a long time in the making!
 </body>
 </html>
