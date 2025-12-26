@@ -1,0 +1,819 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>AUniMart - ADAMAS Marketplace</title>
+    
+    <!-- OPTIMIZATION 1: Preconnect to Google Servers -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+        :root { --primary: #4F46E5; --bg: #f3f4f6; --white: #ffffff; --text: #1f2937; --success: #10B981; --error: #ef4444; }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
+        body { background-color: var(--bg); color: var(--text); padding-bottom: 80px; }
+
+        /* HEADER */
+        header { background: var(--white); padding: 1rem 5%; position: sticky; top: 0; z-index: 100; box-shadow: 0 1px 2px rgba(0,0,0,0.05); display: flex; justify-content: space-between; align-items: center; }
+        .logo { font-size: 1.5rem; font-weight: 800; color: var(--primary); display: flex; align-items: center; gap: 8px; }
+        .live-dot { height: 10px; width: 10px; background-color: var(--success); border-radius: 50%; animation: pulse 2s infinite; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+
+        .header-actions { display: flex; align-items: center; gap: 20px; }
+        .notif-icon { font-size: 1.5rem; cursor: pointer; position: relative; color: #555; transition:0.2s; }
+        .notif-badge { position: absolute; top: -2px; right: -2px; width: 10px; height: 10px; background: red; border-radius: 50%; border: 2px solid white; display: none; }
+        .user-avatar { width: 40px; height: 40px; border-radius: 50%; color: white; display: flex; align-items: center; justify-content: center; font-weight: 700; cursor: pointer; position: relative; user-select: none; font-size: 1.1rem; }
+
+        /* DROPDOWN */
+        .profile-menu { position: absolute; top: 65px; right: 5%; background: white; border-radius: 12px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); width: 220px; display: none; flex-direction: column; overflow: hidden; z-index: 2000; border: 1px solid #eee; }
+        .menu-header { padding: 15px; background: #f9fafb; border-bottom: 1px solid #eee; }
+        .menu-user-name { font-weight: 700; color: var(--text); display: block; }
+        .menu-user-email { font-size: 0.8rem; color: #666; display: block; margin-top: 2px; }
+        .menu-item { padding: 12px 16px; cursor: pointer; border-bottom: 1px solid #f3f4f6; font-size: 0.9rem; transition: 0.2s; }
+        .menu-item:hover { background: #f9fafb; color: var(--primary); }
+        .menu-item:last-child { border-bottom: none; color: #dc2626; }
+
+        /* MOBILE NAV */
+        .bottom-nav { display: none; position: fixed; bottom: 0; left: 0; width: 100%; background: white; border-top: 1px solid #eee; justify-content: space-around; padding: 10px 0; z-index: 900; box-shadow: 0 -2px 10px rgba(0,0,0,0.05); }
+        .nav-icon { display: flex; flex-direction: column; align-items: center; font-size: 0.75rem; color: #888; cursor: pointer; gap: 4px; }
+        .nav-icon svg { width: 24px; height: 24px; stroke: currentColor; stroke-width: 2; fill: none; }
+        .nav-icon.active { color: var(--primary); font-weight: 600; }
+        
+        /* GRID */
+        .controls { padding: 1rem 5%; }
+        .search-bar { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 12px; margin-bottom: 1rem; font-size: 1rem; outline: none; }
+        .categories { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 5px; scrollbar-width: none; }
+        .categories::-webkit-scrollbar { display: none; }
+        .chip { padding: 8px 16px; background: var(--white); border: 1px solid #ddd; border-radius: 20px; cursor: pointer; white-space: nowrap; font-size: 0.9rem; transition: 0.2s; }
+        .chip.active { background: var(--primary); color: white; border-color: var(--primary); }
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 1.5rem; padding: 0 5%; }
+        .card { background: var(--white); border-radius: 12px; overflow: hidden; border: 1px solid #eee; transition: 0.2s; cursor: pointer; }
+        .card:hover { transform: translateY(-3px); box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
+        .card.sold-out { opacity: 0.6; pointer-events: none; filter: grayscale(1); }
+        .card-img-box { height: 180px; background: #f9fafb; display: flex; align-items: center; justify-content: center; overflow: hidden; position: relative; }
+        .card-img { width: 100%; height: 100%; object-fit: cover; }
+        .sold-badge { position: absolute; background: rgba(0,0,0,0.8); color: white; padding: 5px 15px; font-weight: 800; border: 2px solid white; transform: rotate(-10deg); }
+        .card-info { padding: 12px; }
+        .price { font-weight: 700; font-size: 1.1rem; color: #111; }
+        .title { font-size: 0.95rem; color: #444; margin: 4px 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .meta { font-size: 0.75rem; color: #888; display: flex; justify-content: space-between; margin-top: 8px; }
+
+        .fab { position: fixed; bottom: 30px; right: 30px; background: var(--primary); color: white; padding: 15px 25px; border-radius: 50px; font-weight: 600; cursor: pointer; box-shadow: 0 10px 20px rgba(79, 70, 229, 0.4); z-index: 500; display: none; align-items: center; gap: 8px; }
+        
+        /* MODALS */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); display: none; justify-content: center; align-items: center; z-index: 1000; backdrop-filter: blur(4px); }
+        .modal { background: white; width: 90%; max-width: 450px; padding: 25px; border-radius: 20px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1); max-height: 85vh; overflow-y: auto; position: relative; }
+        @keyframes slideUp { from { transform: translateY(40px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+        .close-btn { position: absolute; top: 15px; right: 20px; font-size: 1.8rem; line-height: 1; cursor: pointer; color: #888; transition: 0.2s; z-index: 10; }
+        .close-btn:hover { color: #111; }
+
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 6px; font-size: 0.9rem; font-weight: 500; }
+        .form-input { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 10px; font-size: 1rem; }
+        .btn { width: 100%; padding: 14px; background: var(--primary); color: white; border: none; border-radius: 10px; cursor: pointer; font-weight: 600; font-size: 1rem; }
+        .btn:disabled { background: #9ca3af; cursor: not-allowed; }
+        .tabs { display: flex; border-bottom: 1px solid #eee; margin-bottom: 15px; }
+        .tab { flex: 1; text-align: center; padding: 10px; cursor: pointer; font-weight: 500; color: #666; border-bottom: 2px solid transparent; }
+        .tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+        
+        .list-item { display: flex; justify-content: space-between; align-items: center; padding: 15px 0; border-bottom: 1px solid #f3f4f6; }
+        .list-info strong { display: block; font-size: 0.95rem; margin-bottom: 4px; }
+        .list-info span { font-size: 0.85rem; color: #666; }
+        .btn-sm { padding: 6px 12px; font-size: 0.85rem; border-radius: 6px; cursor: pointer; border: none; }
+        .btn-del { background: #fee2e2; color: #ef4444; }
+        .status-pill { font-size: 0.75rem; padding: 3px 8px; border-radius: 12px; display: inline-block; margin-top: 4px; }
+
+        .toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: #333; color: white; padding: 10px 20px; border-radius: 30px; opacity: 0; transition: 0.3s; pointer-events: none; z-index: 2000; font-size: 0.9rem; }
+        .toast.show { opacity: 1; top: 30px; }
+        
+        /* OPTIMIZATION 2: Skeleton CSS */
+        .skeleton { background: #e5e7eb; overflow: hidden; border-radius: 12px; position: relative; height: 260px; }
+        .skeleton::after { content: ""; position: absolute; top: 0; right: 0; bottom: 0; left: 0; transform: translateX(-100%); background-image: linear-gradient(90deg, rgba(255, 255, 255, 0) 0, rgba(255, 255, 255, 0.2) 20%, rgba(255, 255, 255, 0.5) 60%, rgba(255, 255, 255, 0)); animation: shimmer 2s infinite; }
+        @keyframes shimmer { 100% { transform: translateX(100%); } }
+
+        @media (max-width: 768px) {
+            header { padding: 10px 5%; justify-content: center; }
+            .header-actions { display: none; }
+            .fab { display: none; }
+            .bottom-nav { display: flex; }
+            .grid { grid-template-columns: 1fr 1fr; gap: 10px; padding: 0 10px; }
+            .card-img-box { height: 140px; }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="logo">AUniMart <div class="live-dot"></div></div>
+        <div class="header-actions" id="authContainer">
+            <button class="btn" id="loginBtn" onclick="openLogin()" style="padding: 8px 20px;">Login / Join</button>
+            <div id="userActions" style="display:none; align-items: center; gap: 20px;">
+                <div class="notif-icon" onclick="openNotifModal()">🔔<div class="notif-badge" id="notifBadge"></div></div>
+                <div class="user-avatar" id="userAvatar" onclick="toggleProfileMenu()">U</div>
+            </div>
+            <div class="profile-menu" id="profileMenu">
+                <div class="menu-header"><span class="menu-user-name" id="menuName">User</span><span class="menu-user-email" id="menuEmail">email</span></div>
+                <div class="menu-item" onclick="openEditProfile()">Edit Profile</div>
+                <div class="menu-item" onclick="openProfileModal('basket')">Your Basket</div>
+                <div class="menu-item" onclick="openProfileModal('items')">Your Items</div>
+                <div class="menu-item" onclick="openProfileModal('orders')">Your Orders</div>
+                <div class="menu-item" onclick="doLogout()">Logout</div>
+            </div>
+        </div>
+    </header>
+
+    <div class="controls">
+        <input type="text" class="search-bar" id="searchInput" placeholder="Search books, drafters, etc...">
+        <div class="categories">
+            <div class="chip active" data-cat="All">All</div>
+            <div class="chip" data-cat="Books">Books</div>
+            <div class="chip" data-cat="Stationery">Stationery</div>
+            <div class="chip" data-cat="Electronics">Electronics</div>
+            <div class="chip" data-cat="Lab Coat">Lab Coat</div>
+        </div>
+    </div>
+
+    <main class="grid" id="grid">
+        <!-- OPTIMIZATION 3: Hardcoded Skeleton Loader (Shows instantly before JS loads) -->
+        <div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div>
+        <div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div>
+    </main>
+
+    <div class="fab" id="sellFab" onclick="openSellModal()"><span>+</span> Sell Item</div>
+
+    <div class="bottom-nav" id="mobileNav">
+        <div class="nav-icon active" onclick="switchNav('home')">
+            <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg> Home
+        </div>
+        <div class="nav-icon" onclick="openSellModal()">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg> Sell
+        </div>
+        <div class="nav-icon" onclick="openNotifModal()">
+            <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg> Alerts
+        </div>
+        <div class="nav-icon" onclick="openMobileProfile()">
+            <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg> Profile
+        </div>
+    </div>
+
+    <!-- 1. LOGIN -->
+    <div class="modal-overlay" id="loginModal">
+        <div class="modal">
+            <span class="close-btn" onclick="document.getElementById('loginModal').style.display='none'">&times;</span>
+            <h2 style="margin-bottom:20px;">Welcome to AUniMart</h2>
+            <div id="authError" style="color:red; margin-bottom:10px; display:none; font-size:0.9rem;"></div>
+            <form id="authForm">
+                <div class="form-group"><label>University Email</label><input type="email" id="uEmail" class="form-input" placeholder="id@stu.adamasuniversity.ac.in" required></div>
+                <div class="form-group"><label>Password</label><input type="password" id="uPass" class="form-input" required></div>
+                <button type="submit" class="btn" id="authBtn">Login</button>
+                <div id="toggleAuth" style="text-align:center; margin-top:15px; color:var(--primary); cursor:pointer;">New? Create Account</div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 2. PHONE INPUT MODAL -->
+    <div class="modal-overlay" id="phoneModal" style="z-index: 2100;">
+        <div class="modal">
+            <span class="close-btn" onclick="document.getElementById('phoneModal').style.display='none'" id="closePhoneBtn">&times;</span>
+            <h2>Add Phone Number</h2>
+            <p style="font-size:0.9rem; color:#666; margin-bottom:15px;">Sellers need a way to contact you.</p>
+            <div class="form-group"><label>Mobile Number</label><input type="tel" id="simplePhoneInput" class="form-input" placeholder="+91 9999999999" value="+91 "></div>
+            <button class="btn" onclick="savePhoneNumber()">Save Number</button>
+        </div>
+    </div>
+
+    <!-- 3. SELL MODAL -->
+    <div class="modal-overlay" id="sellModal">
+        <div class="modal">
+            <span class="close-btn" onclick="document.getElementById('sellModal').style.display='none'">&times;</span>
+            <h2>Sell Item</h2><br>
+            <form id="sellForm">
+                <div class="form-group"><label>Title</label><input type="text" id="mName" class="form-input" required></div>
+                <div class="form-group"><label>Price (₹)</label><input type="number" id="mPrice" class="form-input" required></div>
+                <div class="form-group"><label>Category</label><select id="mCategory" class="form-input"><option>Books</option><option>Stationery</option><option>Electronics</option><option>Lab Coat</option><option>Furniture</option><option>Others</option></select></div>
+                <div class="form-group"><label>Quantity</label><input type="number" id="mQty" class="form-input" value="1" min="1"></div>
+                <div class="form-group"><label>Product Image</label><input type="file" id="mFile" class="form-input" accept="image/*" required></div>
+                <div class="form-group" style="background:#f0fdf4; padding:10px; border-radius:8px;">
+                    <label style="color:#15803d">UPI QR (Optional)</label>
+                    <input type="file" id="mQr" class="form-input" accept="image/*">
+                </div>
+                <button type="submit" class="btn" id="postBtn">List Item</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- 4. BUY MODAL (FIXED) -->
+    <div class="modal-overlay" id="buyModal">
+        <div class="modal">
+            <span class="close-btn" onclick="document.getElementById('buyModal').style.display='none'">&times;</span>
+            <h2 style="color:var(--primary);">Buy Item</h2>
+            <img id="buyImg" style="width:100%; height:200px; object-fit:cover; border-radius:10px; margin:10px 0;">
+            <h3 id="buyTitle"></h3>
+            <h2 id="buyPrice" style="margin-bottom:10px;"></h2>
+            
+            <button class="btn" style="background:white; color:var(--primary); border:1px solid var(--primary); margin-bottom:15px;" onclick="addToBasket()">Add to Basket</button>
+            
+            <div class="form-group">
+                <label>Delivery Location <span style="color:red">*</span></label>
+                <input type="text" id="buyAddress" class="form-input" placeholder="Room No, Hostel, or Department" required>
+            </div>
+            
+            <div style="background:#fffbeb; padding:10px; border-radius:8px; border:1px solid #fcd34d; margin-bottom:15px; font-size:0.8rem;">
+                <input type="checkbox" id="scamCheck" onclick="togglePayButtons()"> I promise to not scam. I understand bans are permanent.
+            </div>
+            
+            <div style="display:flex; gap:10px;">
+                <button class="btn" style="flex:1; background:#333;" id="btnUpi" disabled onclick="showUpi()">Pay UPI</button>
+                <button class="btn" style="flex:1; background:#10B981;" id="btnCod" disabled onclick="confirmBuy('COD')">COD</button>
+            </div>
+            
+            <div id="upiArea" style="display:none; text-align:center; margin-top:15px; background:#f9fafb; padding:15px; border-radius:8px; border:1px solid #eee;">
+                <div id="qrContainer"></div>
+                <div style="margin-top:15px; text-align:left; font-size:0.9rem; background:white; padding:10px; border-radius:6px; border:1px solid #ddd;">
+                    <input type="checkbox" id="upiPaidCheck" onclick="toggleUpiFinalButton()"> 
+                    <label for="upiPaidCheck" style="display:inline; font-weight:600; margin-left:5px;">✅ I confirm I have made the payment.</label>
+                </div>
+                <button class="btn" style="width:100%; margin-top:10px;" id="btnPlaceOrderUpi" disabled onclick="confirmBuy('UPI')">Place Order</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 5. NOTIFICATIONS -->
+    <div class="modal-overlay" id="notifModal">
+        <div class="modal">
+            <span class="close-btn" onclick="document.getElementById('notifModal').style.display='none'">&times;</span>
+            <h2 style="margin-bottom:15px;">Notifications</h2>
+            <div class="tabs"><div class="tab active" onclick="switchNotifTab('selling')" id="tabSelling">Selling</div><div class="tab" onclick="switchNotifTab('buying')" id="tabBuying">Buying</div></div>
+            <div id="notifList">Loading...</div>
+        </div>
+    </div>
+
+    <!-- 6. MOBILE PROFILE -->
+    <div class="modal-overlay" id="mobileProfileModal">
+        <div class="modal">
+            <span class="close-btn" onclick="document.getElementById('mobileProfileModal').style.display='none'">&times;</span>
+            <div style="text-align:center; margin-bottom:20px;">
+                <div id="mobAvatar" style="width:60px; height:60px; background:var(--primary); color:white; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:1.5rem; font-weight:bold; margin:0 auto;">U</div>
+                <h3 id="mobName" style="margin-top:10px;">User</h3>
+                <p id="mobEmail" style="color:#666; font-size:0.9rem;">email</p>
+            </div>
+            <button class="btn" onclick="openProfileModal('orders')" style="margin-bottom:10px; background:white; color:#333; border:1px solid #ddd;">My Orders</button>
+            <button class="btn" onclick="openProfileModal('items')" style="margin-bottom:10px; background:white; color:#333; border:1px solid #ddd;">My Listings</button>
+            <button class="btn" onclick="openProfileModal('basket')" style="margin-bottom:10px; background:white; color:#333; border:1px solid #ddd;">My Basket</button>
+            <button class="btn" onclick="openEditProfile()" style="margin-bottom:10px; background:white; color:#333; border:1px solid #ddd;">Edit Profile</button>
+            <button class="btn" onclick="doLogout()" style="background:#fee2e2; color:#dc2626; border:1px solid #fecaca;">Logout</button>
+        </div>
+    </div>
+
+    <!-- 7. EDIT PROFILE -->
+    <div class="modal-overlay" id="editProfileModal">
+        <div class="modal">
+            <span class="close-btn" onclick="document.getElementById('editProfileModal').style.display='none'">&times;</span>
+            <h2>Edit Profile</h2><br>
+            <div class="form-group"><label>New Username</label><input type="text" id="pUsername" class="form-input"></div>
+            <div class="form-group"><label>Update Phone</label><input type="text" id="pPhone" class="form-input" placeholder="+91..."></div>
+            <button class="btn" onclick="saveProfile()">Save</button>
+        </div>
+    </div>
+
+    <!-- 8. LIST MODAL (ORDERS/ITEMS) -->
+    <div class="modal-overlay" id="listModal">
+        <div class="modal">
+            <span class="close-btn" onclick="document.getElementById('listModal').style.display='none'">&times;</span>
+            <h2 id="listTitle">List</h2><div id="listContent" style="margin-top:15px;"></div>
+        </div>
+    </div>
+    
+    <!-- 9. NOTIF DETAIL MODAL -->
+    <div class="modal-overlay" id="notifDetailModal">
+        <div class="modal">
+            <span class="close-btn" onclick="document.getElementById('notifDetailModal').style.display='none'">&times;</span>
+            <h3 style="margin-bottom:15px; color:var(--primary);">Order Details</h3>
+            <div id="notifDetailContent"></div>
+            <div id="notifActions"></div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        // OPTIMIZATION 4: Import Persistence to cache data locally
+        import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, serverTimestamp, doc, updateDoc, deleteDoc, where, getDocs, increment, setDoc, getDoc, enableIndexedDbPersistence } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut, sendEmailVerification } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyA5pEHmAzXTcqYdR7B1jxtvlJ4Oq2_qbHs",
+            authDomain: "aunimart-a2fbe.firebaseapp.com",
+            projectId: "aunimart-a2fbe",
+            storageBucket: "aunimart-a2fbe.firebasestorage.app",
+            messagingSenderId: "1020646094724",
+            appId: "1:1020646094724:web:eb819ffd92214055bc0fd1",
+            measurementId: "G-H58WPTSH5T"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+        
+        // OPTIMIZATION 5: Enable Offline Persistence (The Magic Line for speed)
+        enableIndexedDbPersistence(db).catch((err) => {
+            if (err.code == 'failed-precondition') { console.log("Persistence failed: Multiple tabs open"); } 
+            else if (err.code == 'unimplemented') { console.log("Persistence not supported by browser"); }
+        });
+
+        let products = [], allNotifications = [], currentUser = null, userProfile = null, isLoginMode = true, selectedProduct = null;
+        const colors = ['#EF4444', '#F59E0B', '#10B981', '#3B82F6', '#6366F1', '#8B5CF6', '#EC4899'];
+
+        window.onclick = function(event) {
+            if (event.target.classList.contains('modal-overlay')) {
+                event.target.style.display = "none";
+            }
+        }
+
+        // OPTIMIZATION 6: Load Products Immediately (Don't wait for Auth)
+        const qProd = query(collection(db, "products"), orderBy("timestamp", "desc"));
+        onSnapshot(qProd, (snapshot) => { 
+            products=[]; 
+            snapshot.forEach(d=>products.push({id:d.id, ...d.data()})); 
+            renderGrid(); 
+        });
+
+        onAuthStateChanged(auth, async (user) => {
+            if (user && user.emailVerified) {
+                currentUser = user;
+                await loadUserProfile(user);
+                listenToNotifications(user.uid);
+                setupUI(true);
+                document.getElementById('loginModal').style.display = 'none';
+            } else {
+                currentUser = null; userProfile = null;
+                setupUI(false);
+            }
+        });
+
+        async function loadUserProfile(user) {
+            const ref = doc(db, "users", user.uid);
+            const snap = await getDoc(ref);
+            if(snap.exists()) { userProfile = snap.data(); } 
+            else { 
+                userProfile = { username: user.email.split('@')[0], phoneNumber: "" };
+                await setDoc(ref, { username: userProfile.username, email: user.email });
+            }
+            updateProfileUI();
+        }
+
+        function updateProfileUI() {
+            if(!userProfile) return;
+            const name = userProfile.username || "User";
+            const bg = colors[name.charCodeAt(0) % colors.length];
+            const avt = document.getElementById('userAvatar');
+            avt.innerText = name.charAt(0).toUpperCase(); avt.style.backgroundColor = bg;
+            document.getElementById('menuName').innerText = name;
+            document.getElementById('menuEmail').innerText = currentUser.email;
+            document.getElementById('mobName').innerText = name;
+            document.getElementById('mobEmail').innerText = currentUser.email;
+            document.getElementById('mobAvatar').innerText = name.charAt(0).toUpperCase();
+        }
+
+        function setupUI(loggedIn) {
+            document.getElementById('loginBtn').style.display = loggedIn ? 'none' : 'block';
+            document.getElementById('userActions').style.display = loggedIn ? 'flex' : 'none';
+            document.getElementById('sellFab').style.display = loggedIn ? 'flex' : 'none';
+        }
+
+        document.getElementById('toggleAuth').onclick = () => {
+            isLoginMode = !isLoginMode;
+            const btn = document.getElementById('authBtn');
+            const toggle = document.getElementById('toggleAuth');
+            if(isLoginMode) { btn.innerText = "Login"; toggle.innerText = "New? Create Account"; } 
+            else { btn.innerText = "Create Account"; toggle.innerText = "Have an account? Login"; }
+        };
+
+        document.getElementById('authForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('uEmail').value.trim();
+            const pass = document.getElementById('uPass').value;
+            if(!email.endsWith("@adamasuniversity.ac.in") && !email.endsWith("@stu.adamasuniversity.ac.in")) {
+                alert("Please use official University Email ID."); return;
+            }
+            try {
+                if(isLoginMode) {
+                    const cred = await signInWithEmailAndPassword(auth, email, pass);
+                    if(!cred.user.emailVerified) { alert("Email not verified."); signOut(auth); return; }
+                    showToast("Login Successful");
+                } else {
+                    const cred = await createUserWithEmailAndPassword(auth, email, pass);
+                    await sendEmailVerification(cred.user);
+                    await setDoc(doc(db, "users", cred.user.uid), { username: email.split('@')[0], email: email, joined: serverTimestamp() });
+                    document.getElementById('loginModal').style.display = 'none';
+                    alert("Account created! Please verify your email then login.");
+                }
+            } catch(e) { document.getElementById('authError').innerText = e.message; document.getElementById('authError').style.display = 'block'; }
+        });
+
+        // PHONE
+        window.openPhoneModal = (force = false) => {
+            document.getElementById('phoneModal').style.display = 'flex';
+            document.getElementById('closePhoneBtn').style.display = force ? 'none' : 'block';
+        };
+
+        window.savePhoneNumber = async () => {
+            const num = document.getElementById('simplePhoneInput').value;
+            if(num.length < 10) { alert("Invalid number"); return; }
+            try {
+                await updateDoc(doc(db, "users", currentUser.uid), { phoneNumber: num });
+                userProfile.phoneNumber = num;
+                showToast("Phone Saved");
+                document.getElementById('phoneModal').style.display = 'none';
+            } catch(e) { alert("Error saving number"); }
+        };
+
+        // UI & NOTIFS
+        window.toggleProfileMenu = () => { const m=document.getElementById('profileMenu'); m.style.display=m.style.display==='flex'?'none':'flex'; };
+        document.addEventListener('click', e => { if(!e.target.closest('#userAvatar') && !e.target.closest('#profileMenu') && !e.target.closest('.header-actions')) document.getElementById('profileMenu').style.display='none'; });
+
+        function listenToNotifications(uid) {
+            const q = query(collection(db, "notifications"), where("targetUid", "==", uid));
+            onSnapshot(q, (snap) => {
+                allNotifications = []; let unread = 0;
+                snap.forEach(d => { const n={id:d.id, ...d.data()}; allNotifications.push(n); if(!n.read) unread++; });
+                allNotifications.sort((a,b)=>(b.timestamp?.seconds||0)-(a.timestamp?.seconds||0));
+                document.getElementById('notifBadge').style.display = unread > 0 ? 'block' : 'none';
+            });
+        }
+
+        window.openNotifModal = () => { if(!currentUser) return; document.getElementById('notifModal').style.display='flex'; switchNotifTab('selling'); };
+        window.switchNotifTab = (type) => {
+            document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+            document.getElementById(type==='selling'?'tabSelling':'tabBuying').classList.add('active');
+            const list = document.getElementById('notifList');
+            const items = allNotifications.filter(n => type==='selling' ? n.type==='sale' : n.type==='purchase');
+            if(items.length===0) { list.innerHTML="<p style='text-align:center;padding:20px;color:#999'>No notifications.</p>"; return; }
+            list.innerHTML = items.map(n => `<div class="notif-item ${n.read?'':'unread'}" onclick="openNotifDetail('${n.id}')" style="padding:12px;border-bottom:1px solid #eee;cursor:pointer;background:${n.read?'white':'#f0fdfa'}"><strong>${n.title}</strong><div style="font-size:0.85rem;color:#555;">${n.message}</div></div>`).join('');
+        };
+
+        window.openNotifDetail = async (nid) => {
+            const n = allNotifications.find(x => x.id === nid);
+            if(!n.read) updateDoc(doc(db, "notifications", nid), { read: true });
+            const content = document.getElementById('notifDetailContent');
+            const actions = document.getElementById('notifActions');
+            actions.innerHTML = ''; 
+
+            let orderStatus = 'unknown';
+            let displayPhone = "Loading...";
+
+            if(n.orderId) {
+                try { 
+                    const o = await getDoc(doc(db, "orders", n.orderId)); 
+                    if(o.exists()) {
+                        const od = o.data();
+                        orderStatus = od.status;
+                        displayPhone = od.buyerPhone || "Not shared";
+                    }
+                } catch(e){}
+            }
+
+            if (n.type === 'sale') {
+                content.innerHTML = `<div style="background:#f9fafb;padding:15px;border-radius:8px;">
+                        <p><strong>Item:</strong> ${n.itemName}</p>
+                        <p><strong>Buyer:</strong> ${n.counterpartName}</p>
+                        <p><strong>Phone:</strong> <a href="tel:${displayPhone}">${displayPhone}</a></p>
+                        <p><strong>Status:</strong> ${orderStatus}</p>
+                    </div>`;
+                if (orderStatus === 'pending') actions.innerHTML = `<button class="btn" style="background:#3b82f6;margin-top:10px;" onclick="sellerMarkDelivered('${n.orderId}')">Mark as Delivered</button>`;
+            } else {
+                content.innerHTML = `<div style="background:#f9fafb;padding:15px;border-radius:8px;">
+                        <p><strong>Item:</strong> ${n.itemName}</p>
+                        <p><strong>Seller:</strong> ${n.counterpartName}</p>
+                        <p><strong>Status:</strong> ${orderStatus}</p>
+                    </div>`;
+                if (orderStatus === 'delivered') actions.innerHTML = `<button class="btn" style="background:#10B981;margin-top:10px;" onclick="buyerConfirmReceived('${n.orderId}')">I Received It</button>`;
+            }
+            document.getElementById('notifDetailModal').style.display='flex';
+        };
+
+        window.sellerMarkDelivered = async (oid) => {
+             if(!confirm("Item handed over?")) return;
+             await updateDoc(doc(db, "orders", oid), {status: 'delivered'});
+             const o = (await getDoc(doc(db, "orders", oid))).data();
+             await addDoc(collection(db, "notifications"), { targetUid: o.buyerUid, type: 'purchase', title: `Delivery: ${o.title}`, message: "Seller delivered item. Please confirm.", itemName: o.title, counterpartName: userProfile.username || "Seller", orderId: oid, read: false, timestamp: serverTimestamp() });
+             document.getElementById('notifDetailModal').style.display='none';
+        };
+
+        window.buyerConfirmReceived = async (oid) => {
+             if(!confirm("Received item?")) return;
+             await updateDoc(doc(db, "orders", oid), {status: 'completed'});
+             const o = (await getDoc(doc(db, "orders", oid))).data();
+             const q = query(collection(db, "notifications"), where("orderId", "==", oid), where("type", "==", "sale"));
+             const snap = await getDocs(q);
+             if(!snap.empty) {
+                 await updateDoc(snap.docs[0].ref, { title: `Sold: ${o.title}`, message: "Buyer confirmed receipt. Transaction closed.", read: false, timestamp: serverTimestamp() });
+             } else {
+                 await addDoc(collection(db, "notifications"), { targetUid: o.sellerUid, type: 'sale', title: `Sold: ${o.title}`, message: "Buyer confirmed receipt.", orderId: oid, read: false, timestamp: serverTimestamp() });
+             }
+             document.getElementById('notifDetailModal').style.display='none';
+        };
+
+        function renderGrid() {
+            const grid = document.getElementById('grid');
+            const term = document.getElementById('searchInput').value.toLowerCase();
+            const cat = document.querySelector('.chip.active').dataset.cat;
+            const filtered = products.filter(p=>(cat==='All'||p.category===cat)&&p.title.toLowerCase().includes(term));
+            if(filtered.length===0) { grid.innerHTML="<p style='grid-column:1/-1;text-align:center;color:#999'>No items</p>"; return; }
+            grid.innerHTML=filtered.map(p=>`<div class="card ${p.quantity<1?'sold-out':''}" onclick="openBuyModal('${p.id}')"><div class="card-img-box">${p.quantity<1?'<div class="sold-badge">SOLD OUT</div>':''}<img src="${p.image}" class="card-img" loading="lazy"></div><div class="card-info"><div class="price">₹${p.price}</div><div class="title">${p.title}</div><div class="meta"><span>${p.category}</span><span>Qty: ${p.quantity}</span></div></div></div>`).join('');
+        }
+
+        window.openSellModal = () => { if(!currentUser) {window.openLogin();return;} if(!userProfile.phoneNumber){window.openPhoneModal();return;} document.getElementById('sellModal').style.display='flex'; };
+        
+        window.openBuyModal = (id) => {
+            if(!currentUser) {window.openLogin();return;}
+            selectedProduct=products.find(p=>p.id===id);
+            document.getElementById('buyImg').src=selectedProduct.image;
+            document.getElementById('buyTitle').innerText=selectedProduct.title;
+            document.getElementById('buyPrice').innerText=`₹${selectedProduct.price}`;
+            const btn=document.getElementById('btnUpi');
+            if(selectedProduct.qrImage){btn.innerText="Pay UPI";btn.dataset.hasQr="true";}else{btn.innerText="No UPI";btn.dataset.hasQr="false";}
+            
+            // RESET FIELDS
+            document.getElementById('scamCheck').checked=false;
+            document.getElementById('upiPaidCheck').checked=false;
+            document.getElementById('buyAddress').value = ""; // Clear address
+            document.getElementById('buyAddress').style.border = "1px solid #ddd"; // Reset border
+            
+            document.getElementById('upiArea').style.display='none';
+            document.getElementById('btnUpi').disabled=true;
+            document.getElementById('btnPlaceOrderUpi').disabled=true;
+            document.getElementById('btnCod').disabled=true;
+            document.getElementById('buyModal').style.display='flex';
+        };
+
+        // FIXED: Toggle Buttons based on Checks
+        window.togglePayButtons = () => {
+             if(!userProfile || !userProfile.phoneNumber){
+                 document.getElementById('buyModal').style.display='none';
+                 window.openPhoneModal();
+                 return;
+             }
+             const c = document.getElementById('scamCheck').checked;
+             const hasQr = document.getElementById('btnUpi').dataset.hasQr === "true";
+             
+             document.getElementById('btnCod').disabled = !c;
+             // Only enable UPI if checked AND product has QR
+             document.getElementById('btnUpi').disabled = !(c && hasQr);
+        };
+
+        window.showUpi = () => {
+            document.getElementById('upiArea').style.display = 'block';
+            document.getElementById('qrContainer').innerHTML = `<img src="${selectedProduct.qrImage}" style="width:200px;height:200px;object-fit:contain;margin:0 auto;display:block;">`;
+            const modal = document.querySelector('#buyModal .modal');
+            modal.scrollTop = modal.scrollHeight;
+        };
+
+        window.toggleUpiFinalButton = () => {
+            const paid = document.getElementById('upiPaidCheck').checked;
+            document.getElementById('btnPlaceOrderUpi').disabled = !paid;
+        };
+        
+        window.addToBasket = async () => {
+            if(!currentUser) { window.openLogin(); return; }
+            try {
+                await addDoc(collection(db, "baskets"), {
+                    buyerUid: currentUser.uid,
+                    productId: selectedProduct.id,
+                    title: selectedProduct.title,
+                    price: selectedProduct.price,
+                    timestamp: serverTimestamp()
+                });
+                showToast("Added to Basket");
+                document.getElementById('buyModal').style.display = 'none';
+            } catch(e) { alert("Error adding to basket"); }
+        };
+
+        // FIXED: Order Confirmation
+        window.confirmBuy = async (method) => {
+            // 1. Check Phone
+            if(!userProfile.phoneNumber){
+                document.getElementById('buyModal').style.display='none';
+                window.openPhoneModal();
+                return;
+            }
+
+            // 2. Check Address (Highlight if missing)
+            const addrField = document.getElementById('buyAddress');
+            const addr = addrField.value.trim();
+            if(!addr){
+                alert("Please enter your Delivery Location first.");
+                addrField.style.border = "2px solid red";
+                addrField.focus();
+                return;
+            } else {
+                addrField.style.border = "1px solid #ddd";
+            }
+
+            // 3. Confirm Intent
+            if(method === 'UPI') {
+                const paid = document.getElementById('upiPaidCheck').checked;
+                if(!paid) { alert("Please check the box confirming you paid."); return; }
+            } else { 
+                if(!confirm(`Confirm Order via ${method}?`)) return; 
+            }
+
+            // 4. UI Feedback
+            const btnId = method === 'UPI' ? 'btnPlaceOrderUpi' : 'btnCod';
+            const btn = document.getElementById(btnId);
+            const originalText = btn.innerText;
+            btn.disabled = true;
+            btn.innerText = "Processing...";
+
+            try {
+                // 5. Database Logic
+                const prRef = doc(db, "products", selectedProduct.id);
+                const ps = await getDoc(prRef);
+                
+                if(!ps.exists() || ps.data().quantity < 1){
+                    alert("Sorry! This item was just sold out.");
+                    document.getElementById('buyModal').style.display = 'none';
+                    return;
+                }
+
+                // Decrement Qty
+                await updateDoc(prRef, {
+                    quantity: increment(-1), 
+                    lastActive: serverTimestamp()
+                });
+
+                const buyerName = userProfile.username || "User";
+                
+                // Create Order
+                const oRef = await addDoc(collection(db, "orders"), {
+                    buyerUid: currentUser.uid, 
+                    sellerUid: selectedProduct.sellerUid, 
+                    title: selectedProduct.title, 
+                    price: selectedProduct.price, 
+                    method: method, 
+                    address: addr, 
+                    buyerPhone: userProfile.phoneNumber, 
+                    status: 'pending', 
+                    timestamp: serverTimestamp()
+                });
+
+                // Send Notification
+                await addDoc(collection(db, "notifications"), {
+                    targetUid: selectedProduct.sellerUid, 
+                    type: 'sale', 
+                    title: `New Order: ${selectedProduct.title}`, 
+                    message: `${buyerName} ordered via ${method}`, 
+                    itemName: selectedProduct.title, 
+                    counterpartName: buyerName,
+                    orderId: oRef.id, 
+                    read: false, 
+                    timestamp: serverTimestamp()
+                });
+
+                document.getElementById('buyModal').style.display = 'none'; 
+                showToast("Order Placed Successfully!");
+
+            } catch(e) {
+                console.error(e);
+                alert("Error placing order: " + e.message);
+                btn.disabled = false;
+                btn.innerText = originalText;
+            }
+        };
+
+        document.getElementById('sellForm').addEventListener('submit', async(e)=>{
+            e.preventDefault(); document.getElementById('postBtn').disabled=true;
+            try {
+                // OPTIMIZATION 7: Ensure images are small to keep load times fast
+                const i=await toBase64(document.getElementById('mFile').files[0]);
+                const q=document.getElementById('mQr').files[0]?await toBase64(document.getElementById('mQr').files[0]):null;
+                await addDoc(collection(db,"products"),{title:document.getElementById('mName').value, price:Number(document.getElementById('mPrice').value), category:document.getElementById('mCategory').value, quantity:Number(document.getElementById('mQty').value), image:i, qrImage:q, sellerUid:currentUser.uid, timestamp:serverTimestamp(), lastActive:serverTimestamp()});
+                document.getElementById('sellModal').style.display='none'; showToast("Listed!");
+            } catch(e){alert("Error");}
+            document.getElementById('postBtn').disabled=false;
+        });
+
+        // --- FIXED LIST LOADING LOGIC (CLIENT SIDE SORTING) ---
+        window.openProfileModal = async (type) => {
+            document.getElementById('profileMenu').style.display='none';
+            document.getElementById('mobileProfileModal').style.display='none';
+            
+            const modal = document.getElementById('listModal');
+            const content = document.getElementById('listContent');
+            const title = document.getElementById('listTitle');
+            
+            modal.style.display = 'flex';
+            content.innerHTML = "Loading...";
+            
+            try {
+                let q, snap, docs = [];
+                
+                if (type === 'orders') {
+                    title.innerText = "Your Orders";
+                    // NO ORDERBY IN QUERY TO AVOID INDEX ERROR
+                    q = query(collection(db, "orders"), where("buyerUid", "==", currentUser.uid));
+                    snap = await getDocs(q);
+                    snap.forEach(d => docs.push({id: d.id, ...d.data()}));
+                    
+                    // CLIENT SIDE SORT
+                    docs.sort((a,b) => (b.timestamp?.seconds||0) - (a.timestamp?.seconds||0));
+
+                    if (docs.length === 0) { content.innerHTML = "<p>No orders yet.</p>"; return; }
+                    content.innerHTML = docs.map(d => {
+                        const status = d.status || 'pending';
+                        const statusColor = status === 'delivered' ? 'color:#1d4ed8;background:#eff6ff' : (status==='completed'?'color:#15803d;background:#f0fdf4':'color:#c2410c;background:#fff7ed');
+                        
+                        return `
+                        <div class="list-item">
+                            <div class="list-info">
+                                <strong>${d.title}</strong>
+                                <span>₹${d.price} • ${d.method || 'Cash'}</span><br>
+                                <span class="status-pill" style="${statusColor}">${status.toUpperCase()}</span>
+                            </div>
+                        </div>`;
+                    }).join('');
+
+                } else if (type === 'items') {
+                    title.innerText = "Your Listings";
+                    q = query(collection(db, "products"), where("sellerUid", "==", currentUser.uid));
+                    snap = await getDocs(q);
+                    snap.forEach(d => docs.push({id: d.id, ...d.data()}));
+                    docs.sort((a,b) => (b.timestamp?.seconds||0) - (a.timestamp?.seconds||0));
+
+                    if (docs.length === 0) { content.innerHTML = "<p>No listings.</p>"; return; }
+                    content.innerHTML = docs.map(d => {
+                        return `
+                        <div class="list-item">
+                            <div class="list-info">
+                                <strong>${d.title}</strong>
+                                <span>₹${d.price} • Qty: ${d.quantity}</span>
+                            </div>
+                            <button class="btn-sm btn-del" onclick="deleteMyProduct('${d.id}')">Delete</button>
+                        </div>`;
+                    }).join('');
+
+                } else if (type === 'basket') {
+                    title.innerText = "Your Basket";
+                    q = query(collection(db, "baskets"), where("buyerUid", "==", currentUser.uid));
+                    snap = await getDocs(q);
+                    snap.forEach(d => docs.push({id: d.id, ...d.data()}));
+                    docs.sort((a,b) => (b.timestamp?.seconds||0) - (a.timestamp?.seconds||0));
+
+                    if (docs.length === 0) { content.innerHTML = "<p>Basket empty.</p>"; return; }
+                    content.innerHTML = docs.map(d => {
+                        return `
+                        <div class="list-item">
+                            <div class="list-info">
+                                <strong>${d.title}</strong>
+                                <span>₹${d.price}</span>
+                            </div>
+                            <button class="btn-sm btn-del" onclick="removeFromBasket('${d.id}')">Remove</button>
+                        </div>`;
+                    }).join('');
+                }
+            } catch(e) {
+                console.error(e);
+                content.innerHTML = `<p style="color:red">Error loading list: ${e.message}</p>`;
+            }
+        };
+
+        window.deleteMyProduct = async (id) => {
+            if(confirm("Delete this listing?")) {
+                await deleteDoc(doc(db, "products", id));
+                openProfileModal('items'); // refresh
+            }
+        };
+
+        window.removeFromBasket = async (id) => {
+            if(confirm("Remove from basket?")) {
+                await deleteDoc(doc(db, "baskets", id));
+                openProfileModal('basket'); // refresh
+            }
+        };
+
+        // --- UTILS ---
+        // OPTIMIZATION 8: Compress Images (Max width 500px, 0.5 quality) to ensure DB stays small
+        const toBase64=f=>new Promise(r=>{const rd=new FileReader();rd.readAsDataURL(f);rd.onload=e=>{const i=new Image();i.src=e.target.result;i.onload=()=>{const c=document.createElement('canvas');const s=500/i.width;c.width=500;c.height=i.height*s;c.getContext('2d').drawImage(i,0,0,c.width,c.height);r(c.toDataURL('image/jpeg',0.5))}}});
+        window.openLogin=()=>document.getElementById('loginModal').style.display='flex';
+        window.doLogout=()=>signOut(auth);
+        window.openMobileProfile=()=>{if(!currentUser){openLogin();return;}updateProfileUI();document.getElementById('mobileProfileModal').style.display='flex';};
+        window.switchNav=p=>{if(p==='home')window.scrollTo({top:0,behavior:'smooth'});};
+        window.openEditProfile=()=>{document.getElementById('profileMenu').style.display='none';document.getElementById('pUsername').value=userProfile.username;document.getElementById('pPhone').value=userProfile.phoneNumber||"";document.getElementById('editProfileModal').style.display='flex';};
+        window.saveProfile=async()=>{
+            const n=document.getElementById('pUsername').value; const p=document.getElementById('pPhone').value;
+            if(n){await updateDoc(doc(db,"users",currentUser.uid),{username:n, phoneNumber:p});userProfile.username=n;userProfile.phoneNumber=p;loadUserProfile(currentUser);document.getElementById('editProfileModal').style.display='none';}
+        };
+        document.getElementById('searchInput').addEventListener('input',renderGrid);
+        document.querySelectorAll('.chip').forEach(c=>c.onclick=e=>{document.querySelectorAll('.chip').forEach(x=>x.classList.remove('active'));e.target.classList.add('active');renderGrid();});
+        function showToast(m){const t=document.getElementById('toast');t.innerText=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3000);}
+    </script>
+</body>
+</html>
